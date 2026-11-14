@@ -12,11 +12,9 @@ model_list:
 
   - model_name: free-cloud
     litellm_params:
-      # NOTE: OpenRouter retired this :free ID on 2026-07-19; it now returns 404.
-      # Every request will then fall back to free-local. To get a working free
-      # cloud model, swap in OpenRouter's free auto-router instead:
-      #   model: openrouter/openrouter/free
-      model: openrouter/meta-llama/llama-3.3-70b-instruct:free
+      # OpenRouter's free auto-router: sends each request to a currently free
+      # model, so it keeps working as individual :free models are retired.
+      model: openrouter/openrouter/free
       api_key: os.environ/OPENROUTER_API_KEY
 
 router_settings:

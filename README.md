@@ -18,11 +18,11 @@ litellm-sandbox/
 | Alias | Backend | Needs |
 |---|---|---|
 | `free-local` | `ollama/llama3.2` at `http://localhost:11434` | [Ollama](https://ollama.com) + `ollama pull llama3.2` |
-| `free-cloud` | `openrouter/meta-llama/llama-3.3-70b-instruct:free` | free `OPENROUTER_API_KEY` |
+| `free-cloud` | `openrouter/openrouter/free`, OpenRouter's free auto-router | free `OPENROUTER_API_KEY` |
 
 If `free-cloud` fails (for example, a 429 rate limit), the proxy retries the request on `free-local` straight away.
 
-> **Heads-up:** OpenRouter retired `meta-llama/llama-3.3-70b-instruct:free` on 2026-07-19, so `free-cloud` currently always falls back to `free-local`. For a working free cloud model, change its `model:` to `openrouter/openrouter/free` (OpenRouter's free auto-router). The swap is noted in the config.
+`openrouter/free` picks a currently free model for each request, so the underlying model can differ between calls; `resp.model` shows which one answered. To pin a specific model instead, use an ID ending in `:free` from OpenRouter's free list. Those get retired every few weeks.
 
 The proxy's master key is `sk-local-free`. That's fine for a machine-local sandbox; don't expose the proxy on a network with it.
 
