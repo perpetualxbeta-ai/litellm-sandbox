@@ -1,44 +1,62 @@
-# LiteLLM proxy config for the local sandbox.
+# Zero-cost LiteLLM proxy config: every model here is free to call.
 # Start the proxy with:  dotenv run -- litellm --config litellm_config.yaml --port 4000
 #
-# `os.environ/VAR_NAME` tells LiteLLM to read the value from the environment,
-# so no secrets live in this file. `dotenv run` loads .env first; the litellm
-# CLI does not reliably find a .env in your working folder on its own.
+# `os.environ/VAR_NAME` reads the value from the environment, so no secrets live
+# in this file. `dotenv run` loads .env first; the litellm CLI does not reliably
+# find a .env in your working folder on its own.
+#
+# Free tiers come with rate limits, and free model IDs rotate. If one stops
+# working, run `python test_litellm.py --all` to see which models still answer.
 
 model_list:
-  # --- Mock model: no API key needed. Use it to check the proxy is wired up. ---
+  # --- Mock: no key, no network. Confirms the proxy itself works. ---
   - model_name: mock-model
     litellm_params:
       model: openai/mock-model
       api_key: not-needed
       mock_response: "Hello from the LiteLLM mock model! The proxy is working."
 
-  # --- OpenAI ---
-  - model_name: gpt-4o-mini
+  # --- Ollama: runs on your machine, no key. Needs `ollama pull llama3.2`. ---
+  - model_name: local-llama
     litellm_params:
-      model: openai/gpt-4o-mini
-      api_key: os.environ/OPENAI_API_KEY
+      model: ollama_chat/llama3.2
+      api_base: http://localhost:11434
 
-  # --- Anthropic ---
-  - model_name: claude-sonnet
+  # --- OpenRouter free tier (free key, no card). ---
+  # openrouter/free picks whichever free model fits the request, so it keeps
+  # working when individual :free models are retired.
+  - model_name: openrouter-free
     litellm_params:
-      model: anthropic/claude-sonnet-5-5
-      api_key: os.environ/ANTHROPIC_API_KEY
+      model: openrouter/openrouter/free
+      api_key: os.environ/OPENROUTER_API_KEY
 
-  - model_name: claude-haiku
+  - model_name: openrouter-gpt-oss
     litellm_params:
-      model: anthropic/claude-haiku-5-5
-      api_key: os.environ/ANTHROPIC_API_KEY
+      model: openrouter/openai/gpt-oss-120b:free
+      api_key: os.environ/OPENROUTER_API_KEY
 
-  # --- Google Gemini (AI Studio key) ---
-  - model_name: gemini-flash
+  # --- Groq free tier (free key, no card). ---
+  - model_name: groq-gpt-oss-20b
     litellm_params:
-      model: gemini/gemini-2.5-flash
-      api_key: os.environ/GEMINI_API_KEY
+      model: groq/openai/gpt-oss-20b
+      api_key: os.environ/GROQ_API_KEY
+
+  - model_name: groq-gpt-oss-120b
+    litellm_params:
+      model: groq/openai/gpt-oss-120b
+      api_key: os.environ/GROQ_API_KEY
+
+router_settings:
+  # If a free model is rate-limited or down, try the next one instead of failing.
+  fallbacks:
+    - groq-gpt-oss-20b: ["openrouter-free", "local-llama"]
+    - groq-gpt-oss-120b: ["openrouter-gpt-oss", "openrouter-free"]
+    - openrouter-gpt-oss: ["openrouter-free", "groq-gpt-oss-120b"]
+    - openrouter-free: ["groq-gpt-oss-20b", "local-llama"]
 
 litellm_settings:
   drop_params: true      # silently drop params a provider doesn't support
-  num_retries: 2
+  num_retries: 1
   request_timeout: 60
 
 general_settings:
