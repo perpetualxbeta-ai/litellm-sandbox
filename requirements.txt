@@ -1,0 +1,6 @@
+# LiteLLM with the proxy server extras
+litellm[proxy]>=1.60
+# OpenAI SDK, used by test_litellm.py to talk to the proxy's OpenAI-compatible API
+openai>=1.50
+# Loads .env into the environment; [cli] adds `dotenv run` for starting the proxy
+python-dotenv[cli]>=1.0
