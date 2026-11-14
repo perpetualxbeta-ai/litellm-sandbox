@@ -1,64 +1,35 @@
-# Zero-cost LiteLLM proxy config: every model here is free to call.
+# Zero-cost LiteLLM proxy config.
 # Start the proxy with:  dotenv run -- litellm --config litellm_config.yaml --port 4000
 #
-# `os.environ/VAR_NAME` reads the value from the environment, so no secrets live
-# in this file. `dotenv run` loads .env first; the litellm CLI does not reliably
-# find a .env in your working folder on its own.
-#
-# Free tiers come with rate limits, and free model IDs rotate. If one stops
-# working, run `python test_litellm.py --all` to see which models still answer.
+# free-local needs Ollama running locally:  ollama pull llama3.2
+# free-cloud needs a free OpenRouter key in .env:  OPENROUTER_API_KEY=...
 
 model_list:
-  # --- Mock: no key, no network. Confirms the proxy itself works. ---
-  - model_name: mock-model
+  - model_name: free-local
     litellm_params:
-      model: openai/mock-model
-      api_key: not-needed
-      mock_response: "Hello from the LiteLLM mock model! The proxy is working."
-
-  # --- Ollama: runs on your machine, no key. Needs `ollama pull llama3.2`. ---
-  - model_name: local-llama
-    litellm_params:
-      model: ollama_chat/llama3.2
+      model: ollama/llama3.2
       api_base: http://localhost:11434
 
-  # --- OpenRouter free tier (free key, no card). ---
-  # openrouter/free picks whichever free model fits the request, so it keeps
-  # working when individual :free models are retired.
-  - model_name: openrouter-free
+  - model_name: free-cloud
     litellm_params:
-      model: openrouter/openrouter/free
+      # NOTE: OpenRouter retired this :free ID on 2026-07-19; it now returns 404.
+      # Every request will then fall back to free-local. To get a working free
+      # cloud model, swap in OpenRouter's free auto-router instead:
+      #   model: openrouter/openrouter/free
+      model: openrouter/meta-llama/llama-3.3-70b-instruct:free
       api_key: os.environ/OPENROUTER_API_KEY
-
-  - model_name: openrouter-gpt-oss
-    litellm_params:
-      model: openrouter/openai/gpt-oss-120b:free
-      api_key: os.environ/OPENROUTER_API_KEY
-
-  # --- Groq free tier (free key, no card). ---
-  - model_name: groq-gpt-oss-20b
-    litellm_params:
-      model: groq/openai/gpt-oss-20b
-      api_key: os.environ/GROQ_API_KEY
-
-  - model_name: groq-gpt-oss-120b
-    litellm_params:
-      model: groq/openai/gpt-oss-120b
-      api_key: os.environ/GROQ_API_KEY
 
 router_settings:
-  # If a free model is rate-limited or down, try the next one instead of failing.
+  # If free-cloud fails (e.g. 429 rate limit), retry the request on free-local.
   fallbacks:
-    - groq-gpt-oss-20b: ["openrouter-free", "local-llama"]
-    - groq-gpt-oss-120b: ["openrouter-gpt-oss", "openrouter-free"]
-    - openrouter-gpt-oss: ["openrouter-free", "groq-gpt-oss-120b"]
-    - openrouter-free: ["groq-gpt-oss-20b", "local-llama"]
+    - free-cloud: ["free-local"]
+  # Don't burn time retrying a rate-limited free endpoint: fall back immediately.
+  retry_policy:
+    RateLimitErrorRetries: 0
 
 litellm_settings:
-  drop_params: true      # silently drop params a provider doesn't support
-  num_retries: 1
+  drop_params: true
   request_timeout: 60
 
 general_settings:
-  # Clients must send this as their API key (Authorization: Bearer <key>).
-  master_key: os.environ/LITELLM_MASTER_KEY
+  master_key: sk-local-free

@@ -1,9 +1,9 @@
 """Smoke test for the zero-cost LiteLLM proxy sandbox.
 
 Usage:
-    python test_litellm.py                          # mock-model: no key, no network
-    python test_litellm.py --model openrouter-free
-    python test_litellm.py --model groq-gpt-oss-20b --stream
+    python test_litellm.py                          # free-local (Ollama)
+    python test_litellm.py --model free-cloud       # OpenRouter, falls back to free-local
+    python test_litellm.py --model free-local --stream
     python test_litellm.py --list-models
     python test_litellm.py --all                    # try every model, print a summary
 """
@@ -69,7 +69,7 @@ def run_all(client: OpenAI, prompt: str) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Smoke-test the LiteLLM proxy.")
-    parser.add_argument("--model", default="mock-model", help="model_name from litellm_config.yaml")
+    parser.add_argument("--model", default="free-local", help="model_name from litellm_config.yaml")
     parser.add_argument("--prompt", default="Say hello in one short sentence.")
     parser.add_argument("--stream", action="store_true", help="stream the response")
     parser.add_argument("--list-models", action="store_true", help="list models the proxy exposes")
